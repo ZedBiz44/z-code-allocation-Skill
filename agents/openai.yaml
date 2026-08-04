@@ -1,0 +1,5 @@
+interface:
+  display_name: "Code Allocation"
+  short_description: "Safely allocate authoritative knowledge-record codes"
+  default_prompt: "Use $z-code-allocation to look up or reserve the authoritative code and confirm it only after record verification."
+
