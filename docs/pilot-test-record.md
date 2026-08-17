@@ -1,6 +1,6 @@
 # z-code-allocation Pilot and Trigger-Test Record
 
-**Status:** Static package validation is required for this source revision. Target-platform pilot is pending and must complete before broader deployment.
+**Status:** Static package validation passed on `e2e502b16c6d`. Target-platform pilot is pending and must complete before broader deployment.
 
 ## Artifact and Environment
 

@@ -1,17 +1,28 @@
 # z-code-allocation Validation Record
 
-**Status:** Pending execution after this source-standardization change is committed. Do not claim release readiness until this record contains the tested commit and package evidence.
+**Status:** Source and static package validation passed. Target-platform pilot remains required before broader deployment.
 
-## Required Commands
+## Tested Artifact
 
-`bash scripts/test_default_package_build.sh`
+| Field | Value |
+|---|---|
+| Tested source commit | `e2e502b16c6d640270fe6bbc2483b8d6b9243708` |
+| Runtime artifact | `dist/z-code-allocation/` generated from the tested source commit |
+| Test date | 2026-08-17 MDT |
+| Result | Passed |
 
-`python3 scripts/validate_skill.py dist/z-code-allocation`
+## Commands and Results
 
-## Required Evidence
+- `bash -n scripts/build_package.sh scripts/test_default_package_build.sh` passed.
+- `python3 -m py_compile scripts/validate_skill.py` passed.
+- `bash scripts/test_default_package_build.sh` built `dist/z-code-allocation/` and passed structural validation.
+- `python3 scripts/validate_skill.py dist/z-code-allocation` passed.
+- `git diff --check` passed before commit.
+- `node --check scripts/request_z_code.mjs` and `python3 -m py_compile scripts/request_z_code.py` passed.
 
-- Tested source commit and generated package path.
-- Command output showing a successful clean build and structural validation.
-- Any target-platform validator output and version, when available.
-- Fresh-session discovery and positive, paraphrased, boundary, and negative trigger evidence from the pilot record.
-- Rollback readiness evidence for the installed target.
+## Remaining Deployment Evidence
+
+- Run the target-platform validator when the pilot environment provides one.
+- Install only the generated package on one approved pilot target.
+- Record fresh-session discovery plus positive, paraphrased-positive, boundary, and negative trigger outcomes in the pilot record.
+- Confirm the installed package matches the tested source commit and that the rollback procedure is executable.
