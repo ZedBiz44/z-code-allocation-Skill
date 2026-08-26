@@ -44,7 +44,16 @@ def parse_frontmatter(text: str, errors: list[str]) -> tuple[dict[str, str], str
 
 
 def main() -> int:
-    root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
+    args = sys.argv[1:]
+    repository_mode = False
+    if args and args[0] == "--repository":
+        repository_mode = True
+        args = args[1:]
+    if len(args) > 1:
+        print("Usage: validate_skill.py [--repository] [skill-directory]")
+        return 2
+
+    root = Path(args[0] if args else ".").resolve()
     skill_file = root / "SKILL.md"
     errors: list[str] = []
 
@@ -70,7 +79,7 @@ def main() -> int:
         fail("name must use lowercase letters, numbers, and single hyphens.", errors)
     if len(name) > 64:
         fail("name must not exceed 64 characters.", errors)
-    if root.name != name:
+    if not repository_mode and root.name != name:
         fail(f"folder name '{root.name}' must match name '{name}'.", errors)
     if not description:
         fail("description is required.", errors)
@@ -80,6 +89,21 @@ def main() -> int:
         fail("SKILL.md contains a TODO placeholder.", errors)
     if len(text.splitlines()) > 500:
         fail("SKILL.md must stay under 500 lines.", errors)
+
+    if repository_mode:
+        readme_file = root / "README.md"
+        if not readme_file.is_file():
+            fail("README.md is required at the repository root.", errors)
+        else:
+            readme = readme_file.read_text(encoding="utf-8").strip()
+            if not readme.startswith("# "):
+                fail("README.md must begin with one H1 heading.", errors)
+            if len(readme) < 200:
+                fail("README.md is too short to document the skill responsibly.", errors)
+            if readme.count("\n## ") < 3:
+                fail("README.md must contain at least three H2 sections.", errors)
+            if "SKILL.md" not in readme:
+                fail("README.md must identify SKILL.md as the authoritative runtime guide.", errors)
 
     for target in LINK_RE.findall(body):
         if "://" in target or target.startswith("#"):

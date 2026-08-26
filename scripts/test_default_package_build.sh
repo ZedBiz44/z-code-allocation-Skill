@@ -10,6 +10,7 @@ if [[ -z "$skill_name" ]]; then
   exit 1
 fi
 
+python3 "$root_dir/scripts/validate_skill.py" --repository "$root_dir"
 bash "$root_dir/scripts/build_package.sh"
 python3 "$root_dir/scripts/validate_skill.py" "$root_dir/dist/$skill_name"
 
