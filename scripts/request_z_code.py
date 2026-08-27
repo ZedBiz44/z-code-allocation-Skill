@@ -22,7 +22,14 @@ def configuration() -> tuple[str, str, str]:
     return url, key, agent
 
 
-def request(method: str, path: str, key: str, payload: dict | None = None, retries: int = 1) -> dict:
+def request(
+    method: str,
+    path: str,
+    key: str,
+    payload: dict | None = None,
+    retries: int = 1,
+    not_found_result: dict | None = None,
+) -> dict:
     body = json.dumps(payload).encode("utf-8") if payload is not None else None
     headers = {"Authorization": f"Bearer {key}", "Accept": "application/json"}
     if body is not None:
@@ -38,6 +45,14 @@ def request(method: str, path: str, key: str, payload: dict | None = None, retri
                 parsed = json.loads(detail)
             except json.JSONDecodeError:
                 parsed = {"error": detail}
+            parsed_detail = parsed.get("detail")
+            if (
+                exc.code == 404
+                and isinstance(parsed_detail, dict)
+                and parsed_detail.get("code") == "not_found"
+                and not_found_result is not None
+            ):
+                return not_found_result
             print(json.dumps({"http_status": exc.code, **parsed}, indent=2), file=sys.stderr)
             raise SystemExit(2) from exc
         except (urllib.error.URLError, TimeoutError) as exc:
@@ -100,7 +115,12 @@ def main() -> int:
         result = request("GET", f"{base_url}/v1/status/{urllib.parse.quote(args.request_id, safe='')}", key)
     else:
         query = urllib.parse.urlencode({"name_key": args.name_key})
-        result = request("GET", f"{base_url}/v1/lookup?{query}", key)
+        result = request(
+            "GET",
+            f"{base_url}/v1/lookup?{query}",
+            key,
+            not_found_result={"found": False, "name_key": args.name_key},
+        )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 

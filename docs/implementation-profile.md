@@ -29,7 +29,9 @@ The skill must stay within the authorization conveyed by its invoking task. It d
 
 ## Operating Controls
 
-Call the configured allocator with the approved name key, collection, lane, category, record type, and authenticated runtime profile; retain the returned request identifier.
+The ZedBiz OpenClaw client is `/home/node/.openclaw/skills/z-code-allocation/scripts/request_z_code.mjs`. Other supported packages run the bundled JavaScript or Python client from the active skill directory. The client is a shell-invoked helper and does not need to appear as a separate MCP or `ALL_TOOLS` entry.
+
+Call the configured allocator with the approved name key, collection, lane, category, record type, and authenticated runtime profile; retain the returned request identifier. Treat only a `lookup` HTTP 404 with allocator code `not_found` as the normal exit-zero result `found: false`. Preserve nonzero exits for unknown status requests, authentication, authorization, validation, review, transport, timeout, and server failures.
 
 Changes to the skill source, production deployment, privileges, secrets, or external integrations require the approval applicable to that environment. Do not treat this profile as a substitute for environment-specific authorization.
 
