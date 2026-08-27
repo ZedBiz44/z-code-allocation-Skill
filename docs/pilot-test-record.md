@@ -1,6 +1,6 @@
 # z-code-allocation Pilot and Trigger-Test Record
 
-**Status:** Static package validation passed on `e2e502b16c6d`. Target-platform pilot is pending and must complete before broader deployment.
+**Status:** Client-semantic and static package validation passed on `c20e7db37d22`. The repaired package is ready for an approved target-platform pilot; deployment remains pending.
 
 ## Artifact and Environment
 
@@ -11,6 +11,14 @@
 | Static test | `bash scripts/test_default_package_build.sh` |
 | Pilot environment | One isolated or explicitly approved target environment |
 | Deployment state | Not approved for broad rollout until a pilot records discovery and behavior evidence |
+
+## Pre-Pilot Semantic Evidence
+
+- Both bundled clients return exit-zero `found: false` for a genuine lookup miss.
+- Known lookup results pass through unchanged.
+- Unknown status, unauthorized, server, malformed-command, and transport failures remain nonzero.
+- The same suite passes against the canonical source and the rebuilt `dist/z-code-allocation/` package.
+- No production credential, allocator record, Notion page, or live agent was used or changed by these tests.
 
 ## Trigger Tests
 

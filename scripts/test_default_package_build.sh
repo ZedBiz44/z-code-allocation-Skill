@@ -11,7 +11,9 @@ if [[ -z "$skill_name" ]]; then
 fi
 
 python3 "$root_dir/scripts/validate_skill.py" --repository "$root_dir"
+python3 "$root_dir/scripts/test_client_semantics.py"
 bash "$root_dir/scripts/build_package.sh"
 python3 "$root_dir/scripts/validate_skill.py" "$root_dir/dist/$skill_name"
+python3 "$root_dir/dist/$skill_name/scripts/test_client_semantics.py"
 
 echo "Default package-build regression check passed: dist/$skill_name"

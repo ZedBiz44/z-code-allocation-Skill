@@ -29,9 +29,12 @@ Run the repository validation before release or installation. Build a deployable
 
 ```bash
 python3 scripts/validate_skill.py .
+python3 scripts/test_client_semantics.py
 bash scripts/build_package.sh
 python3 scripts/validate_skill.py dist/z-code-allocation
 ```
+
+The client semantic test verifies that a normal lookup miss returns `found: false` with exit code `0`, while authentication, unknown-status, malformed-command, transport, and server failures remain nonzero. It tests both bundled clients without using production credentials or allocating a code.
 
 Validate on the actual target runtime after installation. Do not assume discovery paths, credentials, or platform behaviour without checking the live environment.
 

@@ -32,7 +32,7 @@ function requireValues(values, names) {
   if (missing.length) throw new Error(`Missing required arguments: ${missing.map((name) => `--${name}`).join(", ")}`);
 }
 
-async function apiRequest(method, endpoint, key, body) {
+async function apiRequest(method, endpoint, key, body, options = {}) {
   let lastError;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -50,6 +50,13 @@ async function apiRequest(method, endpoint, key, body) {
       let result;
       try { result = JSON.parse(text); } catch { result = { error: text }; }
       if (!response.ok) {
+        if (
+          options.notFoundResult !== undefined
+          && response.status === 404
+          && result?.detail?.code === "not_found"
+        ) {
+          return options.notFoundResult;
+        }
         console.error(JSON.stringify({ http_status: response.status, ...result }, null, 2));
         process.exit(2);
       }
@@ -91,7 +98,13 @@ async function main() {
     result = await apiRequest("GET", `${url}/v1/status/${encodeURIComponent(values["request-id"])}`, key);
   } else if (command === "lookup") {
     requireValues(values, ["name-key"]);
-    result = await apiRequest("GET", `${url}/v1/lookup?${new URLSearchParams({ name_key: values["name-key"] })}`, key);
+    result = await apiRequest(
+      "GET",
+      `${url}/v1/lookup?${new URLSearchParams({ name_key: values["name-key"] })}`,
+      key,
+      undefined,
+      { notFoundResult: { found: false, name_key: values["name-key"] } },
+    );
   } else {
     throw new Error(`Unknown command: ${command}`);
   }
