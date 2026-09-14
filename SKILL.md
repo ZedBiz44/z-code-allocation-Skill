@@ -54,7 +54,8 @@ Keep the same request ID for every retry of the same allocation. After creating 
 ```bash
 node "$ZCODE_CLIENT" confirm \
   --z-code Z1ST-80001-100001-010 \
-  --notion-url https://www.notion.so/example
+  --notion-url https://www.notion.so/example \
+  --record-title "Example Record"
 ```
 
 If record creation fails after allocation, mark the code failed instead of recycling it:
@@ -82,6 +83,15 @@ node "$ZCODE_CLIENT" status --request-id agent-20260827-example-name-key
 - Verify the stored record and its final type before confirming the allocation.
 - If record creation fails, mark the allocation failed with the reason. Never recycle it.
 
+## Corrections And Retirement
+
+- Every issued Topic Identifier and complete Z-Code is permanently reserved. Failed, stale, deleted, withdrawn, and replaced codes are never available for reuse.
+- A human-readable Topic Name is separate from the stable Name-Key. Change either only through the allocator's controlled administration route.
+- A Name-Key rename keeps the old key as an alias to the same topic.
+- A Knowledge Family or Lane correction must use controlled topic reassignment. The allocator assigns new codes to every related record and keeps each previous code as a permanent alias.
+- After a controlled change, verify the allocator record, Topic Registry row, Z-Code Registry row, alias history, and linked Notion record before reporting completion.
+- Do not edit the Notion registries as a reverse-sync method. The allocator is authoritative; Notion is its human-readable mirror.
+
 ## Stop Conditions
 
 Stop and report the exact failure when the bundled client itself reports missing configuration, authentication or authorization failure, invalid input, review required, transport failure, timeout, or server failure. An unknown `status` request remains an error because it indicates that the supplied request ID was not recorded.
@@ -93,3 +103,4 @@ Use the allocator command, endpoint, credentials, classifications, and review ow
 ## Governance and Operational Records
 
 The authoritative technical copy and current deployment evidence are maintained in the [ZedBiz source repository](https://github.com/ZedBiz44/z-code-allocation-Skill). Keep implementation, security and rollback, validation, and pilot records in its `docs/` directory. Those operational records are not runtime instructions and are excluded from the generated package.
+

@@ -87,6 +87,7 @@ async function main() {
     requireValues(values, ["z-code", "notion-url"]);
     result = await apiRequest("POST", `${url}/v1/confirm`, key, {
       z_code: values["z-code"], status: "active", notion_url: values["notion-url"],
+      record_title: values["record-title"] || null,
     });
   } else if (command === "failed") {
     requireValues(values, ["z-code", "reason"]);
@@ -115,3 +116,4 @@ main().catch((error) => {
   console.error(error.message);
   process.exit(1);
 });
+

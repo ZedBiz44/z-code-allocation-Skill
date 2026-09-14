@@ -74,6 +74,7 @@ def parser() -> argparse.ArgumentParser:
     confirm = sub.add_parser("confirm")
     confirm.add_argument("--z-code", required=True)
     confirm.add_argument("--notion-url", required=True)
+    confirm.add_argument("--record-title")
     failed = sub.add_parser("failed")
     failed.add_argument("--z-code", required=True)
     failed.add_argument("--reason", required=True)
@@ -102,7 +103,8 @@ def main() -> int:
             "POST",
             f"{base_url}/v1/confirm",
             key,
-            {"z_code": args.z_code, "status": "active", "notion_url": args.notion_url},
+            {"z_code": args.z_code, "status": "active", "notion_url": args.notion_url,
+             "record_title": args.record_title},
         )
     elif args.command == "failed":
         result = request(
@@ -127,4 +129,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
