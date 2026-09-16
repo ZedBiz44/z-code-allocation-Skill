@@ -11,14 +11,32 @@ Use the configured central allocator whenever a governed knowledge record requir
 
 The allocator is a bundled command-line client, not a separately exposed MCP or `ALL_TOOLS` entry. Absence from a tool registry does not mean the allocator is unavailable.
 
-On ZedBiz OpenClaw runtimes, use:
+Do not assume one fleet-wide installation path. Prefer a `ZCODE_CLIENT` path supplied by the active implementation profile. Otherwise, discover the bundled client from approved skill locations:
 
 ```bash
-ZCODE_CLIENT=/home/node/.openclaw/skills/z-code-allocation/scripts/request_z_code.mjs
-test -f "$ZCODE_CLIENT"
+if [ -z "${ZCODE_CLIENT:-}" ]; then
+  for candidate in \
+    "${OPENCLAW_WORKSPACE:+$OPENCLAW_WORKSPACE/skills/z-code-allocation/scripts/request_z_code.mjs}" \
+    "$PWD/skills/z-code-allocation/scripts/request_z_code.mjs" \
+    "$PWD/workspace/skills/z-code-allocation/scripts/request_z_code.mjs" \
+    "$HOME/.openclaw/workspace/skills/z-code-allocation/scripts/request_z_code.mjs" \
+    "$HOME/.openclaw/skills/z-code-allocation/scripts/request_z_code.mjs" \
+    "/opt/data/skills/z-code-allocation/scripts/request_z_code.mjs"
+  do
+    if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+      ZCODE_CLIENT="$candidate"
+      break
+    fi
+  done
+fi
+
+if [ -z "${ZCODE_CLIENT:-}" ] || [ ! -f "$ZCODE_CLIENT" ]; then
+  printf '%s\\n' "Z-Code client not found in the active implementation profile or approved skill locations." >&2
+  exit 1
+fi
 ```
 
-Other supported packages must run the bundled `scripts/request_z_code.mjs` with Node.js or `scripts/request_z_code.py` with Python from the active skill directory.
+Other supported packages may run `scripts/request_z_code.py` with Python from the active skill directory. Record implementation-specific paths in the deployment profile, not in this universal skill.
 
 Check required configuration without printing any value:
 
