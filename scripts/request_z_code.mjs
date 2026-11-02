@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { randomUUID } from "node:crypto";
+
 
 function configuration() {
   const url = (process.env.ZCODE_ALLOCATOR_URL || "").replace(/\/$/, "");
@@ -18,11 +18,20 @@ function configuration() {
 function parseArgs(argv) {
   const command = argv[0];
   if (!command) throw new Error("A command is required: lookup, allocate, confirm, failed, or status");
+  const allowed = {
+    allocate: ["request-id", "name-key", "folder", "lane", "page-type"],
+    confirm: ["z-code", "notion-url", "record-title"], failed: ["z-code", "reason"],
+    status: ["request-id"], lookup: ["name-key"], resolve: ["z-code"], catalogue: [],
+  };
+  if (!(command in allowed)) throw new Error(`Unknown command: ${command}`);
   const values = {};
   for (let index = 1; index < argv.length; index += 2) {
     const flag = argv[index];
     if (!flag?.startsWith("--") || argv[index + 1] === undefined) throw new Error(`Invalid argument: ${flag || "<missing>"}`);
-    values[flag.slice(2)] = argv[index + 1];
+    const name = flag.slice(2);
+    if (!allowed[command].includes(name) || name in values) throw new Error(`Unknown or duplicate flag: ${flag}`);
+    if (!argv[index + 1].trim() || argv[index + 1].startsWith("--")) throw new Error(`Missing value: ${flag}`);
+    values[name] = argv[index + 1];
   }
   return { command, values };
 }
@@ -48,7 +57,8 @@ async function apiRequest(method, endpoint, key, body, options = {}) {
       });
       const text = await response.text();
       let result;
-      try { result = JSON.parse(text); } catch { result = { error: text }; }
+      try { result = JSON.parse(text); } catch { throw new Error("Invalid JSON response; retain request ID and check status"); }
+      if (!result || Array.isArray(result) || typeof result !== "object") throw new Error("Invalid response object");
       if (!response.ok) {
         if (
           options.notFoundResult !== undefined
@@ -74,17 +84,17 @@ async function main() {
   const { command, values } = parseArgs(process.argv.slice(2));
   let result;
   if (command === "allocate") {
-    requireValues(values, ["name-key", "core", "lane", "page-type"]);
+    requireValues(values, ["request-id", "name-key", "folder", "page-type"]);
     result = await apiRequest("POST", `${url}/v1/allocate`, key, {
-      request_id: values["request-id"] || `${agent}-${randomUUID()}`,
+      request_id: values["request-id"],
       name_key: values["name-key"],
-      z_knowledge_core: values.core.toUpperCase(),
-      knowledge_lane: values.lane,
+      folder_key: values.folder,
+      ...(values.lane ? { knowledge_lane: values.lane } : {}),
       page_type: values["page-type"],
       requested_by: agent,
     });
   } else if (command === "confirm") {
-    requireValues(values, ["z-code", "notion-url"]);
+    requireValues(values, ["z-code", "notion-url", "record-title"]);
     result = await apiRequest("POST", `${url}/v1/confirm`, key, {
       z_code: values["z-code"], status: "active", notion_url: values["notion-url"],
       record_title: values["record-title"] || null,
@@ -94,6 +104,11 @@ async function main() {
     result = await apiRequest("POST", `${url}/v1/confirm`, key, {
       z_code: values["z-code"], status: "failed", reason: values.reason,
     });
+  } else if (command === "catalogue") {
+    result = await apiRequest("GET", `${url}/v1/catalogue`, key);
+  } else if (command === "resolve") {
+    requireValues(values, ["z-code"]);
+    result = await apiRequest("GET", `${url}/v1/resolve?${new URLSearchParams({ z_code: values["z-code"] })}`, key);
   } else if (command === "status") {
     requireValues(values, ["request-id"]);
     result = await apiRequest("GET", `${url}/v1/status/${encodeURIComponent(values["request-id"])}`, key);
@@ -109,6 +124,8 @@ async function main() {
   } else {
     throw new Error(`Unknown command: ${command}`);
   }
+  const required = { allocate: ["z_code", "request_id", "status", "mapping_version"], confirm: ["z_code", "status"], failed: ["z_code", "status"], status: ["request_id", "status"], resolve: ["z_code"], catalogue: ["version", "folders"], lookup: result.found === false ? ["found", "name_key"] : ["name_key", "records"] }[command];
+  if (required.some(k => result[k] === undefined || result[k] === null)) throw new Error("Incomplete success response; retain request details and reconcile");
   console.log(JSON.stringify(result, null, 2));
 }
 

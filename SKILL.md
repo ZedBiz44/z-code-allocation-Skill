@@ -7,6 +7,8 @@ description: Look up, reserve, confirm, fail, or check authoritative record code
 
 Use the configured central allocator whenever a governed knowledge record requires an authoritative code. Never calculate, guess, increment, copy, or reuse a code manually.
 
+Release candidate: requires the catalogue-enabled allocator. Do not install fleet-wide before the approved one-agent pilot. The maintained [Allocation Skill SOP](https://app.notion.com/p/3a3a3e33d58180f7bf5ed69f0a398b84) owns the human procedure.
+
 ## Runtime Client
 
 The allocator is a bundled command-line client, not a separately exposed MCP or `ALL_TOOLS` entry. Absence from a tool registry does not mean the allocator is unavailable.
@@ -50,6 +52,8 @@ Do not proceed if any required value is missing.
 
 ## Commands
 
+Read the active mapping with `node "$ZCODE_CLIENT" catalogue`. Use its folder key and default lane; supply `--lane` only for an explicitly approved sublane. Folder keys have four characters; issued families have two. Topic 100000 is a directory reference, never a content allocation.
+
 Look up a likely existing identity before allocating:
 
 ```bash
@@ -62,16 +66,15 @@ A normal miss returns exit `0` with `{"found":false,"name_key":"Example-Name-Key
 node "$ZCODE_CLIENT" allocate \
   --request-id agent-20260827-example-name-key \
   --name-key Example-Name-Key \
-  --core Z1ST \
-  --lane 80001 \
+  --folder Z1ST \
   --page-type Brief
 ```
 
-Keep the same request ID for every retry of the same allocation. After creating and reading back the final record, confirm it:
+Save the Request ID and exact request before sending. The client requires that ID; it never invents one. Keep the same ID and payload for every retry. The client makes at most two transport attempts. After an uncertain result, use status and reconcile; never change the ID to bypass an error. After creating and reading back the final record, confirm it:
 
 ```bash
 node "$ZCODE_CLIENT" confirm \
-  --z-code Z1ST-80001-100001-010 \
+  --z-code Z1-40000-100001-010 \
   --notion-url https://www.notion.so/example \
   --record-title "Example Record"
 ```
@@ -80,7 +83,7 @@ If record creation fails after allocation, mark the code failed instead of recyc
 
 ```bash
 node "$ZCODE_CLIENT" failed \
-  --z-code Z1ST-80001-100001-010 \
+  --z-code Z1-40000-100001-010 \
   --reason "Record creation failed"
 ```
 
@@ -98,8 +101,12 @@ node "$ZCODE_CLIENT" status --request-id agent-20260827-example-name-key
 - Allocate before creating the final record and retain the stable request identifier.
 - If allocation requires review, stop that record and report the review identifier.
 - Create the record with the returned code exactly as issued.
-- Verify the stored record and its final type before confirming the allocation.
-- If record creation fails, mark the allocation failed with the reason. Never recycle it.
+- Read back the original page and verify its exact code, title, URL, Page-Type and required relations before confirming.
+- After a publication timeout, find and read the original before trying another create. Unknown outcomes stay unresolved.
+- Verify both registry mirrors; a queued mirror is awaiting verification, not complete.
+- Resolve an old code with `node "$ZCODE_CLIENT" resolve --z-code OLD-CODE`.
+- Only the configured administrator may approve a replacement request after reconciling the original; record the reason and old/new IDs.
+- Mark failed only when failure is known and no original page exists. Never mark an uncertain publication failed or recycle its code.
 
 ## Corrections And Retirement
 

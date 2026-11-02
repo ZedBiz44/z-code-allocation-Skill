@@ -10,6 +10,8 @@ This repository is the technical source of truth for `z-code-allocation`, the au
 
 ## When Not to Use It
 
+Do not use this skill to invent codes, bypass review, or retry an uncertain publication by creating another page.
+
 - Invent, reuse, or locally generate a code when the central allocator is available.
 - Use the skill for general naming conventions that do not require a tracked record code.
 - Continue a record-creation workflow after an allocation error without resolving the authoritative state.
@@ -30,7 +32,7 @@ Run the repository validation before release or installation. Build a deployable
 ```bash
 python3 scripts/validate_skill.py .
 python3 scripts/test_client_semantics.py
-bash scripts/build_package.sh
+python3 scripts/build_package.py
 python3 scripts/validate_skill.py dist/z-code-allocation
 ```
 
@@ -39,6 +41,8 @@ The client semantic test verifies that a normal lookup miss returns `found: fals
 Validate on the actual target runtime after installation. Do not assume discovery paths, credentials, or platform behaviour without checking the live environment.
 
 ## Safety and Approval Boundaries
+
+Never expose secrets. Fleet installation requires Jack's approval after a successful one-agent pilot. This catalogue-enabled release is a candidate until that pilot; it requires the updated allocator.
 
 Treat allocator responses as the source of truth. Preserve reservation and failure records, do not expose credentials, and stop for clarification when the configured allocator or record type is ambiguous.
 
