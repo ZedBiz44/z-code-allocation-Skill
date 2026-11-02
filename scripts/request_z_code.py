@@ -9,7 +9,6 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import uuid
 
 
 def configuration() -> tuple[str, str, str]:
@@ -63,25 +62,28 @@ def request(
 
 
 def parser() -> argparse.ArgumentParser:
-    root = argparse.ArgumentParser(description="Use the authoritative ZedBiz Z-Code allocator")
+    root = argparse.ArgumentParser(description="Use the authoritative ZedBiz Z-Code allocator", allow_abbrev=False)
     sub = root.add_subparsers(dest="command", required=True)
-    allocate = sub.add_parser("allocate")
-    allocate.add_argument("--request-id", default=None)
+    allocate = sub.add_parser("allocate", allow_abbrev=False)
+    allocate.add_argument("--request-id", required=True)
     allocate.add_argument("--name-key", required=True)
-    allocate.add_argument("--core", required=True)
-    allocate.add_argument("--lane", required=True)
+    allocate.add_argument("--folder", required=True)
+    allocate.add_argument("--lane")
     allocate.add_argument("--page-type", required=True)
-    confirm = sub.add_parser("confirm")
+    confirm = sub.add_parser("confirm", allow_abbrev=False)
     confirm.add_argument("--z-code", required=True)
     confirm.add_argument("--notion-url", required=True)
-    confirm.add_argument("--record-title")
-    failed = sub.add_parser("failed")
+    confirm.add_argument("--record-title", required=True)
+    failed = sub.add_parser("failed", allow_abbrev=False)
     failed.add_argument("--z-code", required=True)
     failed.add_argument("--reason", required=True)
-    status = sub.add_parser("status")
+    status = sub.add_parser("status", allow_abbrev=False)
     status.add_argument("--request-id", required=True)
-    lookup = sub.add_parser("lookup")
+    lookup = sub.add_parser("lookup", allow_abbrev=False)
     lookup.add_argument("--name-key", required=True)
+    sub.add_parser("catalogue")
+    resolve = sub.add_parser("resolve", allow_abbrev=False)
+    resolve.add_argument("--z-code", required=True)
     return root
 
 
@@ -90,13 +92,15 @@ def main() -> int:
     base_url, key, agent = configuration()
     if args.command == "allocate":
         payload = {
-            "request_id": args.request_id or f"{agent}-{uuid.uuid4()}",
+            "request_id": args.request_id,
             "name_key": args.name_key,
-            "z_knowledge_core": args.core.upper(),
+            "folder_key": args.folder,
             "knowledge_lane": args.lane,
             "page_type": args.page_type,
             "requested_by": agent,
         }
+        if payload["knowledge_lane"] is None:
+            del payload["knowledge_lane"]
         result = request("POST", f"{base_url}/v1/allocate", key, payload)
     elif args.command == "confirm":
         result = request(
@@ -113,6 +117,11 @@ def main() -> int:
             key,
             {"z_code": args.z_code, "status": "failed", "reason": args.reason},
         )
+    elif args.command == "catalogue":
+        result = request("GET", f"{base_url}/v1/catalogue", key)
+    elif args.command == "resolve":
+        query = urllib.parse.urlencode({"z_code": args.z_code})
+        result = request("GET", f"{base_url}/v1/resolve?{query}", key)
     elif args.command == "status":
         result = request("GET", f"{base_url}/v1/status/{urllib.parse.quote(args.request_id, safe='')}", key)
     else:
@@ -123,6 +132,9 @@ def main() -> int:
             key,
             not_found_result={"found": False, "name_key": args.name_key},
         )
+    required = {"allocate": ["z_code", "request_id", "status", "mapping_version"], "confirm": ["z_code", "status"], "failed": ["z_code", "status"], "status": ["request_id", "status"], "resolve": ["z_code"], "catalogue": ["version", "folders"], "lookup": ["found", "name_key"] if isinstance(result, dict) and result.get("found") is False else ["name_key", "records"]}[args.command]
+    if not isinstance(result, dict) or any(result.get(k) is None for k in required):
+        raise RuntimeError("Incomplete success response; retain request details and reconcile")
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 

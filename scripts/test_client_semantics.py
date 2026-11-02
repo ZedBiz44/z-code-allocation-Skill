@@ -38,7 +38,7 @@ class AllocatorHandler(BaseHTTPRequestHandler):
         if parsed.path == "/v1/lookup":
             name_key = urllib.parse.parse_qs(parsed.query).get("name_key", [""])[0]
             if name_key == "Known-Name-Key":
-                self.send_json(200, {"found": True, "name_key": name_key, "z_code": "ZTST-10000-100001-010"})
+                self.send_json(200, {"found": True, "name_key": name_key, "records": [{"z_code": "ZTST-10000-100001-010"}]})
             elif name_key == "Server-Failure":
                 self.send_json(500, {"detail": {"code": "server_error", "message": "Test server failure"}})
             else:
@@ -83,7 +83,7 @@ def test_client(label: str, command_prefix: list[str], base_url: str) -> None:
 
     found = run_client(command_prefix + ["lookup", "--name-key", "Known-Name-Key"], base_url)
     assert found.returncode == 0, f"{label} known lookup failed: {found.stderr}"
-    assert json.loads(found.stdout)["z_code"] == "ZTST-10000-100001-010"
+    assert json.loads(found.stdout)["records"][0]["z_code"] == "ZTST-10000-100001-010"
     assert_secret_absent(found)
 
     status = run_client(command_prefix + ["status", "--request-id", "missing-request"], base_url)
