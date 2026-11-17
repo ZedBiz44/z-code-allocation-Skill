@@ -54,6 +54,10 @@ Do not proceed if any required value is missing.
 
 Use the lane and topic rules in [Z-Knowledge-Database-Record-SOP](https://app.notion.com/p/38ca3e33d58180319f0eeada4cf5d5fc). Read the active ranges with `node "$ZCODE_CLIENT" catalogue`. The four-character Z-Knowledge Key selects the range. The issued Z-Code starts with the two-character Knowledge-Family.
 
+- Standard Topic-Names use fixed six-digit Topic-Identifiers in every Knowledge-Lane and Knowledge-Family: Business Overview = `100001`, Website = `100002`, Person = `100003`.
+- `100004–100010` are reserved for other shared topics; do not assign meanings to them without Jack's approval. Other new topics start at `100011` and increase within their lane.
+- Create a standard topic only when a page needs it. Do not create ten empty topic rows for every lane. Agents select the Topic-Name; the allocator assigns the number. Always use the complete returned Z-Code, including its suffix.
+
 First look up the Name-Key under its Z-Knowledge Key. The result lists the topics inside that lane. The Name-Key belongs to the lane. Each Topic-Name has its own Topic-Identifier within that lane. Keep the same Name-Key when a page needs a different topic in the same lane.
 
 ```bash
