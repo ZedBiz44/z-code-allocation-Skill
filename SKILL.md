@@ -52,23 +52,26 @@ Do not proceed if any required value is missing.
 
 ## Commands
 
-Read the active mapping with `node "$ZCODE_CLIENT" catalogue`. Use its folder key and default lane; supply `--lane` only for an explicitly approved sublane. Folder keys have four characters; issued families have two. Topic 100000 is a directory reference, never a content allocation.
+Use the lane and topic rules in [Z-Knowledge-Database-Record-SOP](https://app.notion.com/p/38ca3e33d58180319f0eeada4cf5d5fc). Read the active ranges with `node "$ZCODE_CLIENT" catalogue`. The four-character Z-Knowledge Key selects the range. The issued Z-Code starts with the two-character Knowledge-Family.
 
-Look up a likely existing identity before allocating:
+First look up the Name-Key under its Z-Knowledge Key. The result lists the topics inside that lane.
 
 ```bash
-node "$ZCODE_CLIENT" lookup --name-key Example-Name-Key
+node "$ZCODE_CLIENT" lookup --folder Z1ZC --name-key Example-Client
 ```
 
-A normal miss returns exit `0` with `{"found":false,"name_key":"Example-Name-Key"}`. This means no matching record was found; it is not an outage. Allocate only when record creation is authorized and duplicate checks are complete.
+A normal miss returns exit `0` with `{"found":false,"name_key":"Example-Client"}`. Search for related lanes or topics before asking to create one. Reuse the existing lane and Topic-Name when the subject fits.
 
 ```bash
 node "$ZCODE_CLIENT" allocate \
-  --request-id agent-20260827-example-name-key \
-  --name-key Example-Name-Key \
-  --folder Z1ST \
+  --request-id agent-20261117-example-client-brief \
+  --name-key Example-Client \
+  --folder Z1ZC \
+  --topic-name "Business Overview" \
   --page-type Brief
 ```
+
+Add `--create-lane` only when a new Knowledge-Lane is needed. Add `--create-topic` only when a new topic is needed within that lane. Omit both flags to reuse existing records. Follow the same command options with the Python client.
 
 Save the Request ID and exact request before sending. The client requires that ID; it never invents one. Keep the same ID and payload for every retry. The client makes at most two transport attempts. After an uncertain result, use status and reconcile; never change the ID to bypass an error. After creating and reading back the final record, confirm it:
 
@@ -95,15 +98,15 @@ node "$ZCODE_CLIENT" status --request-id agent-20260827-example-name-key
 
 ## Workflow
 
-- Determine the proposed name key, owning collection, lane or category, and record type.
-- Look up likely existing identities before reserving a new code.
+- Determine the Z-Knowledge Key, then check the Name-Key and Knowledge-Lane.
+- Within that lane, check the Topic-Name before reserving a new code.
 - Treat lookup `found: false` as the decision point to allocate when authorized, not as a failed invocation.
 - Allocate before creating the final record and retain the stable request identifier.
 - If allocation requires review, stop that record and report the review identifier.
 - Create the record with the returned code exactly as issued.
 - Read back the original page and verify its exact code, title, URL, Page-Type and required relations before confirming.
 - After a publication timeout, find and read the original before trying another create. Unknown outcomes stay unresolved.
-- Verify both registry mirrors; a queued mirror is awaiting verification, not complete.
+- Verify the lane, topic, and Z-Code registry entries after confirmation. A queued mirror still needs verification.
 - Resolve an old code with `node "$ZCODE_CLIENT" resolve --z-code OLD-CODE`.
 - Only the configured administrator may approve a replacement request after reconciling the original; record the reason and old/new IDs.
 - Mark failed only when failure is known and no original page exists. Never mark an uncertain publication failed or recycle its code.
@@ -112,8 +115,8 @@ node "$ZCODE_CLIENT" status --request-id agent-20260827-example-name-key
 
 - Every issued Topic Identifier and complete Z-Code is permanently reserved. Failed, stale, deleted, withdrawn, and replaced codes are never available for reuse.
 - A human-readable Topic Name is separate from the stable Name-Key. Change either only through the allocator's controlled administration route.
-- A Name-Key rename keeps the old key as an alias to the same topic.
-- A Knowledge Family or Lane correction must use controlled topic reassignment. The allocator assigns new codes to every related record and keeps each previous code as a permanent alias.
+- A Name-Key rename keeps the old key as an alias to the same Knowledge-Lane.
+- Use the controlled allocator migration operation for a page that belongs in a different topic or lane. The allocator issues the replacement code and preserves the old code as an alias.
 - After a controlled change, verify the allocator record, Topic Registry row, Z-Code Registry row, alias history, and linked Notion record before reporting completion.
 - Do not edit the Notion registries as a reverse-sync method. The allocator is authoritative; Notion is its human-readable mirror.
 
