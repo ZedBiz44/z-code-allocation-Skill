@@ -19,19 +19,25 @@ function parseArgs(argv) {
   const command = argv[0];
   if (!command) throw new Error("A command is required: lookup, allocate, confirm, failed, or status");
   const allowed = {
-    allocate: ["request-id", "name-key", "folder", "lane", "page-type"],
+    allocate: ["request-id", "name-key", "folder", "lane", "page-type", "topic-name", "create-lane", "create-topic"],
     confirm: ["z-code", "notion-url", "record-title"], failed: ["z-code", "reason"],
-    status: ["request-id"], lookup: ["name-key"], resolve: ["z-code"], catalogue: [],
+    status: ["request-id"], lookup: ["name-key", "folder"], resolve: ["z-code"], catalogue: [],
   };
   if (!(command in allowed)) throw new Error(`Unknown command: ${command}`);
   const values = {};
-  for (let index = 1; index < argv.length; index += 2) {
+  for (let index = 1; index < argv.length; index += 1) {
     const flag = argv[index];
-    if (!flag?.startsWith("--") || argv[index + 1] === undefined) throw new Error(`Invalid argument: ${flag || "<missing>"}`);
+    if (!flag?.startsWith("--")) throw new Error(`Invalid argument: ${flag || "<missing>"}`);
     const name = flag.slice(2);
     if (!allowed[command].includes(name) || name in values) throw new Error(`Unknown or duplicate flag: ${flag}`);
-    if (!argv[index + 1].trim() || argv[index + 1].startsWith("--")) throw new Error(`Missing value: ${flag}`);
-    values[name] = argv[index + 1];
+    if (name === "create-lane" || name === "create-topic") {
+      values[name] = true;
+      continue;
+    }
+    const value = argv[index + 1];
+    if (!value?.trim() || value.startsWith("--")) throw new Error(`Missing value: ${flag}`);
+    values[name] = value;
+    index += 1;
   }
   return { command, values };
 }
@@ -85,11 +91,20 @@ async function main() {
   let result;
   if (command === "allocate") {
     requireValues(values, ["request-id", "name-key", "folder", "page-type"]);
+    if ((values["create-lane"] || values["create-topic"]) && !values["topic-name"]) {
+      throw new Error("--topic-name is required with --create-lane or --create-topic");
+    }
+    if (values["topic-name"] && values.lane) {
+      throw new Error("Use --name-key to select a named lane; omit --lane when using --topic-name");
+    }
     result = await apiRequest("POST", `${url}/v1/allocate`, key, {
       request_id: values["request-id"],
       name_key: values["name-key"],
       folder_key: values.folder,
       ...(values.lane ? { knowledge_lane: values.lane } : {}),
+      ...(values["topic-name"] ? { topic_name: values["topic-name"] } : {}),
+      ...(values["create-lane"] ? { create_lane: true } : {}),
+      ...(values["create-topic"] ? { create_topic: true } : {}),
       page_type: values["page-type"],
       requested_by: agent,
     });
@@ -114,9 +129,12 @@ async function main() {
     result = await apiRequest("GET", `${url}/v1/status/${encodeURIComponent(values["request-id"])}`, key);
   } else if (command === "lookup") {
     requireValues(values, ["name-key"]);
+    const lookupPath = values.folder ? "/v1/lanes/lookup" : "/v1/lookup";
+    const query = new URLSearchParams({ name_key: values["name-key"] });
+    if (values.folder) query.set("folder_key", values.folder);
     result = await apiRequest(
       "GET",
-      `${url}/v1/lookup?${new URLSearchParams({ name_key: values["name-key"] })}`,
+      `${url}${lookupPath}?${query}`,
       key,
       undefined,
       { notFoundResult: { found: false, name_key: values["name-key"] } },
@@ -124,7 +142,7 @@ async function main() {
   } else {
     throw new Error(`Unknown command: ${command}`);
   }
-  const required = { allocate: ["z_code", "request_id", "status", "mapping_version"], confirm: ["z_code", "status"], failed: ["z_code", "status"], status: ["request_id", "status"], resolve: ["z_code"], catalogue: ["version", "folders"], lookup: result.found === false ? ["found", "name_key"] : ["name_key", "records"] }[command];
+  const required = { allocate: ["z_code", "request_id", "status", "mapping_version"], confirm: ["z_code", "status"], failed: ["z_code", "status"], status: ["request_id", "status"], resolve: ["z_code"], catalogue: ["version", "folders"], lookup: result.found === false ? ["found", "name_key"] : ["name_key", values.folder ? "topics" : "records"] }[command];
   if (required.some(k => result[k] === undefined || result[k] === null)) throw new Error("Incomplete success response; retain request details and reconcile");
   console.log(JSON.stringify(result, null, 2));
 }

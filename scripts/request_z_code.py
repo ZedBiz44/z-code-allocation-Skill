@@ -69,6 +69,9 @@ def parser() -> argparse.ArgumentParser:
     allocate.add_argument("--name-key", required=True)
     allocate.add_argument("--folder", required=True)
     allocate.add_argument("--lane")
+    allocate.add_argument("--topic-name")
+    allocate.add_argument("--create-lane", action="store_true")
+    allocate.add_argument("--create-topic", action="store_true")
     allocate.add_argument("--page-type", required=True)
     confirm = sub.add_parser("confirm", allow_abbrev=False)
     confirm.add_argument("--z-code", required=True)
@@ -81,6 +84,7 @@ def parser() -> argparse.ArgumentParser:
     status.add_argument("--request-id", required=True)
     lookup = sub.add_parser("lookup", allow_abbrev=False)
     lookup.add_argument("--name-key", required=True)
+    lookup.add_argument("--folder", help="Look up the named lane and its topics in this Z-Knowledge Key")
     sub.add_parser("catalogue")
     resolve = sub.add_parser("resolve", allow_abbrev=False)
     resolve.add_argument("--z-code", required=True)
@@ -88,7 +92,13 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    args = parser().parse_args()
+    cli = parser()
+    args = cli.parse_args()
+    if args.command == "allocate":
+        if (args.create_lane or args.create_topic) and not args.topic_name:
+            cli.error("--topic-name is required with --create-lane or --create-topic")
+        if args.topic_name and args.lane:
+            cli.error("Use --name-key to select a named lane; omit --lane when using --topic-name")
     base_url, key, agent = configuration()
     if args.command == "allocate":
         payload = {
@@ -101,6 +111,12 @@ def main() -> int:
         }
         if payload["knowledge_lane"] is None:
             del payload["knowledge_lane"]
+        if args.topic_name:
+            payload["topic_name"] = args.topic_name
+            if args.create_lane:
+                payload["create_lane"] = True
+            if args.create_topic:
+                payload["create_topic"] = True
         result = request("POST", f"{base_url}/v1/allocate", key, payload)
     elif args.command == "confirm":
         result = request(
@@ -125,14 +141,19 @@ def main() -> int:
     elif args.command == "status":
         result = request("GET", f"{base_url}/v1/status/{urllib.parse.quote(args.request_id, safe='')}", key)
     else:
-        query = urllib.parse.urlencode({"name_key": args.name_key})
+        params = {"name_key": args.name_key}
+        path = "/v1/lookup"
+        if args.folder:
+            params["folder_key"] = args.folder
+            path = "/v1/lanes/lookup"
+        query = urllib.parse.urlencode(params)
         result = request(
             "GET",
-            f"{base_url}/v1/lookup?{query}",
+            f"{base_url}{path}?{query}",
             key,
             not_found_result={"found": False, "name_key": args.name_key},
         )
-    required = {"allocate": ["z_code", "request_id", "status", "mapping_version"], "confirm": ["z_code", "status"], "failed": ["z_code", "status"], "status": ["request_id", "status"], "resolve": ["z_code"], "catalogue": ["version", "folders"], "lookup": ["found", "name_key"] if isinstance(result, dict) and result.get("found") is False else ["name_key", "records"]}[args.command]
+    required = {"allocate": ["z_code", "request_id", "status", "mapping_version"], "confirm": ["z_code", "status"], "failed": ["z_code", "status"], "status": ["request_id", "status"], "resolve": ["z_code"], "catalogue": ["version", "folders"], "lookup": ["found", "name_key"] if isinstance(result, dict) and result.get("found") is False else ["name_key", "topics" if getattr(args, "folder", None) else "records"]}[args.command]
     if not isinstance(result, dict) or any(result.get(k) is None for k in required):
         raise RuntimeError("Incomplete success response; retain request details and reconcile")
     print(json.dumps(result, indent=2, sort_keys=True))
