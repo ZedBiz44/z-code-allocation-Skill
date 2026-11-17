@@ -54,7 +54,7 @@ Do not proceed if any required value is missing.
 
 Use the lane and topic rules in [Z-Knowledge-Database-Record-SOP](https://app.notion.com/p/38ca3e33d58180319f0eeada4cf5d5fc). Read the active ranges with `node "$ZCODE_CLIENT" catalogue`. The four-character Z-Knowledge Key selects the range. The issued Z-Code starts with the two-character Knowledge-Family.
 
-First look up the Name-Key under its Z-Knowledge Key. The result lists the topics inside that lane.
+First look up the Name-Key under its Z-Knowledge Key. The result lists the topics inside that lane. The Name-Key belongs to the lane. Each Topic-Name has its own Topic-Identifier within that lane. Keep the same Name-Key when a page needs a different topic in the same lane.
 
 ```bash
 node "$ZCODE_CLIENT" lookup --folder Z1ZC --name-key Example-Client
@@ -106,7 +106,7 @@ node "$ZCODE_CLIENT" status --request-id agent-20260827-example-name-key
 - Create the record with the returned code exactly as issued.
 - Read back the original page and verify its exact code, title, URL, Page-Type and required relations before confirming.
 - After a publication timeout, find and read the original before trying another create. Unknown outcomes stay unresolved.
-- Verify the lane, topic, and Z-Code registry entries after confirmation. A queued mirror still needs verification.
+- Verify [Z-Code-Registry](https://app.notion.com/p/89267d1e18f84f669269c900dc730b08), [Z-Code-Topic-Registry](https://app.notion.com/p/90ea3e33d58182f1993501fa6e50236f), and [Z-Code-Knowledge-Lane-Registry](https://app.notion.com/p/37ba3e33d581833e8c2781d032f4c6e5) after confirmation. The Code Registry entry's `Topic` links to the specific topic. The topic's `Knowledge-Lane-Record` links to the lane. In the Topic Registry, `Topic-Identity` holds the Topic-Name. A queued mirror still needs verification.
 - Resolve an old code with `node "$ZCODE_CLIENT" resolve --z-code OLD-CODE`.
 - Only the configured administrator may approve a replacement request after reconciling the original; record the reason and old/new IDs.
 - Mark failed only when failure is known and no original page exists. Never mark an uncertain publication failed or recycle its code.
@@ -117,7 +117,7 @@ node "$ZCODE_CLIENT" status --request-id agent-20260827-example-name-key
 - A human-readable Topic Name is separate from the stable Name-Key. Change either only through the allocator's controlled administration route.
 - A Name-Key rename keeps the old key as an alias to the same Knowledge-Lane.
 - Use the controlled allocator migration operation for a page that belongs in a different topic or lane. The allocator issues the replacement code and preserves the old code as an alias.
-- After a controlled change, verify the allocator record, Topic Registry row, Z-Code Registry row, alias history, and linked Notion record before reporting completion.
+- After a controlled change, verify the allocator record, the three registry links, the old-code alias, and the original Notion page before reporting completion.
 - Do not edit the Notion registries as a reverse-sync method. The allocator is authoritative; Notion is its human-readable mirror.
 
 ## Stop Conditions
