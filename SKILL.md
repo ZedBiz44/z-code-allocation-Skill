@@ -135,4 +135,3 @@ Use the allocator command, endpoint, credentials, classifications, and review ow
 ## Governance and Operational Records
 
 The authoritative technical copy and current deployment evidence are maintained in the [ZedBiz source repository](https://github.com/ZedBiz44/z-code-allocation-Skill). Keep implementation, security and rollback, validation, and pilot records in its `docs/` directory. Those operational records are not runtime instructions and are excluded from the generated package.
-
