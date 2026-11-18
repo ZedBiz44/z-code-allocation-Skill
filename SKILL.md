@@ -1,13 +1,13 @@
 ---
 name: z-code-allocation
-description: Look up, reserve, confirm, fail, or check authoritative record codes through the configured central allocator.
+description: Look up, allocate, rename, or delete authorized knowledge-record codes and verify their registry links.
 ---
 
 # Code Allocation
 
 Use the configured central allocator whenever a governed knowledge record requires an authoritative code. Never calculate, guess, increment, copy, or reuse a code manually.
 
-Release candidate: requires the catalogue-enabled allocator. Do not install fleet-wide before the approved one-agent pilot. The maintained [Allocation Skill SOP](https://app.notion.com/p/3a3a3e33d58180f7bf5ed69f0a398b84) owns the human procedure.
+Requires allocator 2.2.0 for record administration. Jack authorizes the scope of changes; the configured administrator identity controls these commands. The maintained [Z-Code-Allocation-Skill-SOP](https://app.notion.com/p/3a3a3e33d58180f7bf5ed69f0a398b84) owns the human procedure.
 
 ## Runtime Client
 
@@ -125,6 +125,39 @@ node "$ZCODE_CLIENT" status --request-id agent-20260827-example-name-key
 - Use the controlled allocator migration operation for a page that belongs in a different topic or lane. The allocator issues the replacement code and removes the superseded Code Registry row.
 - After a controlled change, verify the allocator record, the three current registry links, the original page’s Old-Z-Code field, and the original Notion page before reporting completion.
 - Do not edit the Notion registries as a reverse-sync method. The allocator is authoritative; Notion is its human-readable mirror.
+
+## Approved Page-Name Corrections
+
+- Use these commands only for an authorized correction. Follow Jack's requirement to show proposed wording before changing it when approval has not already been given.
+- Read the current SOP, original Notion page and allocator lane lookup. Identify every original page affected by a lane Name-Key change. Keep their existing Z-Codes and Old-Z-Code fields.
+- Rename the original Notion page or pages first. If the Name-Key also changes, use the existing lane operation through this client:
+
+```bash
+node "$ZCODE_CLIENT" rename-lane --folder Z1ST --name-key Old-Example --new-name-key Example --reason "Jack approved this lane Name-Key correction"
+```
+
+- Then update the allocator Page-Name for each original. The API verifies that the URL belongs to that code and the original page already has the exact requested Page-Name. It keeps the code and queues normal registry updates.
+
+```bash
+node "$ZCODE_CLIENT" rename-record --z-code Z1-40001-100011-050 --notion-url ORIGINAL-NOTION-URL --record-title Example-Reference-Check --reason "Jack approved this Page-Name"
+```
+
+- Verify the original, allocator Page-Name, lane Name-Key and all three registry links after the mirror finishes. A queued result is not completion. Do not allocate a new code or use confirm as a Page-Name edit.
+
+## Approved Allocation Deletion
+
+- Delete an allocation only when Jack authorized deletion of that exact original or merged copy. Verify useful content is on the kept page and identify its current code before removing the extra page.
+- Move the approved extra original to Notion Trash first. Then supply its exact code and original URL. The API refuses a live original, wrong URL or pending registry work.
+
+```bash
+node "$ZCODE_CLIENT" delete-record --z-code Z1-40001-100011-050 --notion-url ORIGINAL-NOTION-URL --reason "Jack approved deletion of this merged copy"
+```
+
+- A deletion_pending response means the allocator entry is removed but its Code Registry row still needs removal by the mirror. Wait and verify that the registry row is absent or in Trash and the removed code returns 404. Verify the kept original and its code still work.
+- Retry an uncertain call with the same code and URL. An already queued deletion returns its pending result. After completed deletion, 404 is expected; verify the registry and kept page rather than treating it as an allocator failure.
+- Do not create an alias, redirect, retired-code row, replacement page or separate deletion-history database. The temporary queue entry disappears when mirror deletion succeeds. Do not clear the kept page's Old-Z-Code field without Jack's separate instruction.
+- If deletion or its mirror fails, leave the work pending and report the exact error. Do not restore redirects, invent a new code, edit the registries by hand or bypass the API through server/database access.
+- The Python helper accepts the same three administration commands and flags.
 
 ## Stop Conditions
 
