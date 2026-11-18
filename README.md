@@ -49,3 +49,7 @@ Treat allocator responses as the source of truth. Preserve reservation and failu
 ## Status and Contributions
 
 Keep this README aligned with the actual skill contract and file structure. Make changes through version control, validate them before release, and document material deployment or governance decisions in the repository’s approved records.
+
+## Record administration client contract
+
+The Node and Python helpers expose rename-record, delete-record and the existing rename-lane API. These require an administrator identity and explicit flags; no command invents codes or silently edits registry fields. Rename requests include the exact original Notion URL, saved Page-Name and reason. Delete requests include the exact original URL and reason; deletion_pending requires mirror verification. The server requires the original already in Notion Trash. Completed deletion leaves no old-code alias or tombstone. Maintained operating instructions remain in Notion.
