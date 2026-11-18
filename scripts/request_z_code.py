@@ -88,6 +88,18 @@ def parser() -> argparse.ArgumentParser:
     sub.add_parser("catalogue")
     resolve = sub.add_parser("resolve", allow_abbrev=False)
     resolve.add_argument("--z-code", required=True)
+    lane_rename = sub.add_parser('rename-lane', allow_abbrev=False)
+    lane_rename.add_argument('--folder', required=True)
+    lane_rename.add_argument('--name-key', required=True)
+    lane_rename.add_argument('--new-name-key', required=True)
+    lane_rename.add_argument('--reason', required=True)
+    for name in ('rename-record', 'delete-record'):
+        command = sub.add_parser(name, allow_abbrev=False)
+        command.add_argument('--z-code', required=True)
+        command.add_argument('--notion-url', required=True)
+        command.add_argument('--reason', required=True)
+        if name == 'rename-record':
+            command.add_argument('--record-title', required=True)
     return root
 
 
@@ -126,6 +138,15 @@ def main() -> int:
             {"z_code": args.z_code, "status": "active", "notion_url": args.notion_url,
              "record_title": args.record_title},
         )
+    elif args.command == 'rename-lane':
+        result = request('POST', f'{base_url}/v1/admin/rename-lane', key, {
+            'folder_key': args.folder, 'name_key': args.name_key,
+            'new_name_key': args.new_name_key, 'reason': args.reason})
+    elif args.command in ('rename-record', 'delete-record'):
+        payload = {'z_code': args.z_code, 'notion_url': args.notion_url, 'reason': args.reason}
+        if args.command == 'rename-record':
+            payload['record_title'] = args.record_title
+        result = request('POST', f'{base_url}/v1/admin/{args.command}', key, payload)
     elif args.command == "failed":
         result = request(
             "POST",
@@ -153,7 +174,7 @@ def main() -> int:
             key,
             not_found_result={"found": False, "name_key": args.name_key},
         )
-    required = {"allocate": ["z_code", "request_id", "status", "mapping_version"], "confirm": ["z_code", "status"], "failed": ["z_code", "status"], "status": ["request_id", "status"], "resolve": ["z_code"], "catalogue": ["version", "folders"], "lookup": ["found", "name_key"] if isinstance(result, dict) and result.get("found") is False else ["name_key", "topics" if getattr(args, "folder", None) else "records"]}[args.command]
+    required = {"rename-lane": ["lane_id", "name_key"], "rename-record": ["z_code", "record_title", "status"], "delete-record": ["z_code", "status", "mirror_event_id"], "allocate": ["z_code", "request_id", "status", "mapping_version"], "confirm": ["z_code", "status"], "failed": ["z_code", "status"], "status": ["request_id", "status"], "resolve": ["z_code"], "catalogue": ["version", "folders"], "lookup": ["found", "name_key"] if isinstance(result, dict) and result.get("found") is False else ["name_key", "topics" if getattr(args, "folder", None) else "records"]}[args.command]
     if not isinstance(result, dict) or any(result.get(k) is None for k in required):
         raise RuntimeError("Incomplete success response; retain request details and reconcile")
     print(json.dumps(result, indent=2, sort_keys=True))
@@ -162,5 +183,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
