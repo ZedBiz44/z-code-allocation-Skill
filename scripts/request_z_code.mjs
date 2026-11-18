@@ -22,6 +22,9 @@ function parseArgs(argv) {
     allocate: ["request-id", "name-key", "folder", "lane", "page-type", "topic-name", "create-lane", "create-topic"],
     confirm: ["z-code", "notion-url", "record-title"], failed: ["z-code", "reason"],
     status: ["request-id"], lookup: ["name-key", "folder"], resolve: ["z-code"], catalogue: [],
+    "rename-record": ["z-code", "notion-url", "record-title", "reason"],
+    "delete-record": ["z-code", "notion-url", "reason"],
+    "rename-lane": ["folder", "name-key", "new-name-key", "reason"],
   };
   if (!(command in allowed)) throw new Error(`Unknown command: ${command}`);
   const values = {};
@@ -114,6 +117,17 @@ async function main() {
       z_code: values["z-code"], status: "active", notion_url: values["notion-url"],
       record_title: values["record-title"] || null,
     });
+  } else if (command === "rename-lane") {
+    requireValues(values, ["folder", "name-key", "new-name-key", "reason"]);
+    result = await apiRequest("POST", `${url}/v1/admin/rename-lane`, key, {
+      folder_key: values.folder, name_key: values["name-key"], new_name_key: values["new-name-key"], reason: values.reason,
+    });
+  } else if (command === "rename-record" || command === "delete-record") {
+    requireValues(values, ["z-code", "notion-url", "reason", ...(command === "rename-record" ? ["record-title"] : [])]);
+    result = await apiRequest("POST", `${url}/v1/admin/${command}`, key, {
+      z_code: values["z-code"], notion_url: values["notion-url"], reason: values.reason,
+      ...(command === "rename-record" ? { record_title: values["record-title"] } : {}),
+    });
   } else if (command === "failed") {
     requireValues(values, ["z-code", "reason"]);
     result = await apiRequest("POST", `${url}/v1/confirm`, key, {
@@ -142,7 +156,7 @@ async function main() {
   } else {
     throw new Error(`Unknown command: ${command}`);
   }
-  const required = { allocate: ["z_code", "request_id", "status", "mapping_version"], confirm: ["z_code", "status"], failed: ["z_code", "status"], status: ["request_id", "status"], resolve: ["z_code"], catalogue: ["version", "folders"], lookup: result.found === false ? ["found", "name_key"] : ["name_key", values.folder ? "topics" : "records"] }[command];
+  const required = { "rename-lane": ["lane_id", "name_key"], "rename-record": ["z_code", "record_title", "status"], "delete-record": ["z_code", "status", "mirror_event_id"], allocate: ["z_code", "request_id", "status", "mapping_version"], confirm: ["z_code", "status"], failed: ["z_code", "status"], status: ["request_id", "status"], resolve: ["z_code"], catalogue: ["version", "folders"], lookup: result.found === false ? ["found", "name_key"] : ["name_key", values.folder ? "topics" : "records"] }[command];
   if (required.some(k => result[k] === undefined || result[k] === null)) throw new Error("Incomplete success response; retain request details and reconcile");
   console.log(JSON.stringify(result, null, 2));
 }
@@ -151,4 +165,3 @@ main().catch((error) => {
   console.error(error.message);
   process.exit(1);
 });
-
