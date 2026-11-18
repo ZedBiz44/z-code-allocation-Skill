@@ -18,6 +18,7 @@ def server():
         response = {"z_code":"ZV-45000-100001-050", "request_id":"suzy-test-0001", "status":"reserved", "mapping_version":"test-v1"}
         def log_message(self, *args): pass
         def do_POST(self):
+            type(self).last_path = self.path
             calls.append(json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0")))))
             self.send_response(200); self.end_headers()
             self.wfile.write(json.dumps(self.response).encode())
@@ -71,3 +72,35 @@ def test_malformed_success_is_not_reported_as_success(language, server):
     result = invoke(language, url, BASE)
     assert result.returncode != 0
     assert "Incomplete success response" in result.stderr
+
+
+@pytest.mark.parametrize('language', ['node', 'python'])
+@pytest.mark.parametrize('command', ['rename-record', 'delete-record', 'rename-lane'])
+def test_record_control_commands(language, command, server):
+    url, calls, handler = server
+    handler.response = {'z_code': 'Z1-40001-100011-050', 'status': 'deletion_pending',
+                        'mirror_event_id': 99, 'record_title': 'Example-Reference-Check',
+                        'lane_id': 2, 'name_key': 'Short-Example'}
+    args = [command, '--reason', 'Approved test command']
+    if command == 'rename-lane':
+        args += ['--folder', 'Z1ST', '--name-key', 'Example', '--new-name-key', 'Short-Example']
+    else:
+        args += ['--z-code', handler.response['z_code'], '--notion-url', 'https://app.notion.com/p/' + 'a' * 32]
+        if command == 'rename-record': args += ['--record-title', handler.response['record_title']]
+    result = invoke(language, url, args)
+    assert result.returncode == 0, result.stderr
+    assert calls[0]['reason'] == 'Approved test command'
+    assert len(calls) == 1
+    assert handler.last_path == '/v1/admin/' + command
+    assert 'requested_by' not in calls[0]
+    if command == 'rename-record': assert calls[0]['record_title'] == handler.response['record_title']
+    if command == 'delete-record': assert 'record_title' not in calls[0]
+    if command == 'rename-lane': assert calls[0]['new_name_key'] == 'Short-Example'
+
+
+@pytest.mark.parametrize('language', ['node', 'python'])
+def test_delete_cannot_omit_original_url(language, server):
+    url, calls, _ = server
+    result = invoke(language, url, ['delete-record', '--z-code', 'Z1-40001-100011-050', '--reason', 'Approved deletion'])
+    assert result.returncode != 0
+    assert calls == []
