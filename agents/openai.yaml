@@ -1,5 +1,5 @@
 interface:
   display_name: "Code Allocation"
-  short_description: "Safely allocate authoritative knowledge-record codes"
-  default_prompt: "Use $z-code-allocation to look up or reserve the authoritative code and confirm it only after record verification."
+  short_description: "Allocate, correct and remove authorized Z-Code records"
+  default_prompt: "Use $z-code-allocation to allocate and verify codes, coordinate approved Page-Name corrections, or remove an approved obsolete allocation after checking its original page."
 
