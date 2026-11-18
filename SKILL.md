@@ -111,17 +111,19 @@ node "$ZCODE_CLIENT" status --request-id agent-20260827-example-name-key
 - Read back the original page and verify its exact code, title, URL, Page-Type and required relations before confirming.
 - After a publication timeout, find and read the original before trying another create. Unknown outcomes stay unresolved.
 - Verify [Z-Code-Registry](https://app.notion.com/p/89267d1e18f84f669269c900dc730b08), [Z-Code-Topic-Registry](https://app.notion.com/p/90ea3e33d58182f1993501fa6e50236f), and [Z-Code-Knowledge-Lane-Registry](https://app.notion.com/p/37ba3e33d581833e8c2781d032f4c6e5) after confirmation. The Code Registry entry's `Topic` links to the specific topic. The topic's `Knowledge-Lane-Record` links to the lane. In the Topic Registry, `Topic-Identity` holds the Topic-Name. A queued mirror still needs verification.
-- Resolve an old code with `node "$ZCODE_CLIENT" resolve --z-code OLD-CODE`.
+- Check a current code with `node "$ZCODE_CLIENT" resolve --z-code CURRENT-CODE`. Previous codes are stored only in the original page’s `Old-Z-Code` field.
 - Only the configured administrator may approve a replacement request after reconciling the original; record the reason and old/new IDs.
 - Mark failed only when failure is known and no original page exists. Never mark an uncertain publication failed or recycle its code.
 
-## Corrections And Retirement
+## Corrections And Old-Z-Code
 
-- Every issued Topic Identifier and complete Z-Code is permanently reserved. Failed, stale, deleted, withdrawn, and replaced codes are never available for reuse.
+- Before replacing a page’s code, save its current code in that original page’s `Old-Z-Code` field. If that field already contains an earlier code, preserve it and report the difference rather than overwriting it.
+- Keep only the current complete code in the allocator and Code Registry. Do not create old-code aliases, redirects, retired-code rows, or a separate history database.
+- For later memory updates, read the original page’s `Old-Z-Code` and current `Z-Code`. Clear `Old-Z-Code` only when Jack authorizes it after the memory updates.
 - A human-readable Topic Name is separate from the stable Name-Key. Change either only through the allocator's controlled administration route.
 - A Name-Key rename keeps the old key as an alias to the same Knowledge-Lane.
-- Use the controlled allocator migration operation for a page that belongs in a different topic or lane. The allocator issues the replacement code and preserves the old code as an alias.
-- After a controlled change, verify the allocator record, the three registry links, the old-code alias, and the original Notion page before reporting completion.
+- Use the controlled allocator migration operation for a page that belongs in a different topic or lane. The allocator issues the replacement code and removes the superseded Code Registry row.
+- After a controlled change, verify the allocator record, the three current registry links, the original page’s Old-Z-Code field, and the original Notion page before reporting completion.
 - Do not edit the Notion registries as a reverse-sync method. The allocator is authoritative; Notion is its human-readable mirror.
 
 ## Stop Conditions
