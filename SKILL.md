@@ -7,7 +7,7 @@ description: Look up, allocate, rename, or delete authorized knowledge-record co
 
 Use the configured central allocator whenever a governed knowledge record requires an authoritative code. Never calculate, guess, increment, copy, or reuse a code manually.
 
-Requires allocator 2.2.0 for record administration. Jack authorizes the scope of changes; the configured administrator identity controls these commands. The maintained [Z-Code-Allocation-Skill-SOP](https://app.notion.com/p/3a3a3e33d58180f7bf5ed69f0a398b84) owns the human procedure.
+Requires allocator 2.2.0 for record administration. Jack authorizes the scope of changes; the configured administrator identity controls these commands. Edith and Marsha are the designated code-correction administrators. Other agents may use approved ordinary lookup/allocation workflows, but must hand coordinated corrections or deletions to Edith or Marsha; installing this skill does not grant administrator access. The maintained [Z-Code-Allocation-Skill-SOP](https://app.notion.com/p/3a3a3e33d58180f7bf5ed69f0a398b84) owns the human procedure.
 
 ## Runtime Client
 
@@ -170,3 +170,4 @@ Use the allocator command, endpoint, credentials, classifications, and review ow
 ## Governance and Operational Records
 
 The authoritative technical copy and current deployment evidence are maintained in the [ZedBiz source repository](https://github.com/ZedBiz44/z-code-allocation-Skill). Keep implementation, security and rollback, validation, and pilot records in its `docs/` directory. Those operational records are not runtime instructions and are excluded from the generated package.
+
