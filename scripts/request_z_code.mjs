@@ -51,6 +51,9 @@ function requireValues(values, names) {
 }
 
 async function apiRequest(method, endpoint, key, body, options = {}) {
+  if (new URL(endpoint).pathname.includes("/v1/admin/")) {
+    key = process.env.ZCODE_ADMIN_API_KEY || key;
+  }
   let lastError;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
