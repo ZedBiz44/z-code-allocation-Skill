@@ -29,6 +29,8 @@ def request(
     retries: int = 1,
     not_found_result: dict | None = None,
 ) -> dict:
+    if "/v1/admin/" in urllib.parse.urlsplit(path).path:
+        key = os.getenv("ZCODE_ADMIN_API_KEY") or key
     body = json.dumps(payload).encode("utf-8") if payload is not None else None
     headers = {"Authorization": f"Bearer {key}", "Accept": "application/json"}
     if body is not None:
